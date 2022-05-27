@@ -1,31 +1,52 @@
+import java.time.ZonedDateTime;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class Bank {
-    private int money = 10000;
+
+    private AtomicInteger money = new AtomicInteger();
 
     int getMoney() {
-        return money;
+        return money.get();
     }
 
-    synchronized void take(int money) {
-        this.money -= money;
+    void take(int money) {
+        // безопасно уменьшаем
+        this.money.addAndGet(-money);
     }
 
-    synchronized void repay(int money) {
-        this.money += money;
+    void repay(int money) {
+        //безопасно увеличиваем
+        this.money.addAndGet(money);
     }
 
-    class Client extends Thread {
+    class Client extends Thread{
         @Override
         public void run() {
-            while (true) {
-                take(1000);
-                repay(1000);
+            while(true) {
+                // выдаем кредит, только если
+                // есть свободные средства
+                if (getMoney() >= 1000) {
+                    take(1000);
+                    repay(1000);
+                }
             }
         }
     }
 
     public Bank() {
-        new Client().start();
-        new Client().start();
-        new Client().start();
+        //устанавливаем начальное значение
+        money.set(10000);
+        for (int i = 0; i < 5; i++)
+            new Client().start();
+
+    }
+
+    public static void main(String[] args) throws InterruptedException {
+        Bank bank = new Bank();
+        while(true) {
+            ZonedDateTime.now();
+            System.out.println(bank.getMoney());
+            Thread.sleep(1000);
+        }
     }
 }
